@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GoldenTech - แอปสมาชิก</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { font-family: 'Kanit', sans-serif; box-sizing: border-box; }
+  :root { --navy: #001F3F; --gold: #D4AF37; }
+  body { background: #f0f2f5; margin: 0; padding: 0; }
+  .app { max-width: 430px; margin: 0 auto; background: white; min-height: 100vh; position: relative; overflow: hidden; }
+  .page { display: none; padding-bottom: 80px; }
+  .page.active { display: block; }
+  .header { background: var(--navy); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .header-title { color: white; font-size: 16px; font-weight: 700; }
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 430px; max-width: 100vw; background: white; border-top: 1px solid #e5e7eb; display: flex; z-index: 100; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 8px; cursor: pointer; color: #9ca3af; font-size: 10px; gap: 4px; transition: 0.2s; }
+  .nav-item.active { color: var(--navy); }
+  .nav-item.active svg { stroke: var(--navy); }
+  .nav-item svg { stroke: #9ca3af; }
+  .carousel-wrap { position: relative; overflow: hidden; height: 200px; background: #e5e7eb; }
+  .carousel-slides { display: flex; transition: transform 0.5s ease; height: 100%; }
+  .carousel-slide { min-width: 100%; height: 100%; object-fit: cover; }
+  .carousel-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; transition: 0.2s; }
+  .dot.active { background: white; }
+  .balance-card { background: linear-gradient(135deg, var(--navy) 0%, #0a3d6b 100%); border-radius: 16px; padding: 24px; margin: 16px; color: white; }
+  .credit-bar { height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden; }
+  .credit-fill { height: 100%; background: var(--gold); border-radius: 4px; transition: width 0.5s; }
+  .section-title { font-size: 15px; font-weight: 700; color: var(--navy); padding: 0 16px; margin: 16px 0 10px; }
+  .quick-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+  .quick-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+  .quick-label { font-size: 11px; color: #374151; text-align: center; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; color: #374151; font-weight: 500; display: block; margin-bottom: 6px; }
+  .form-input { border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 14px; font-size: 14px; width: 100%; outline: none; font-family: 'Kanit', sans-serif; }
+  .form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.2); }
+  .btn-primary { background: var(--navy); color: white; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; width: 100%; cursor: pointer; font-family: 'Kanit', sans-serif; transition: 0.2s; }
+  .btn-primary:hover { background: #002d5a; }
+  .btn-gold { background: var(--gold); color: #1a1a1a; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; width: 100%; cursor: pointer; font-family: 'Kanit', sans-serif; transition: 0.2s; }
+  .btn-gold:hover { background: #c9a227; }
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: all 0.3s; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .login-screen { min-height: 100vh; background: linear-gradient(135deg, var(--navy) 0%, #0a3d6b 100%); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-box { background: white; border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 380px; }
+  .profile-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), #c9a227); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: var(--navy); }
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; }
+  .info-label { font-size: 13px; color: #6b7280; }
+  .info-value { font-size: 13px; font-weight: 600; color: #374151; }
+  .alert-locked { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 12px 16px; margin: 16px; display: flex; align-items: center; gap: 10px; }
+  select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 36px; }
+  .alert-info { background: #dbeafe; border: 1px solid #93c5fd; border-radius: 10px; padding: 12px 16px; margin: 16px; display: flex; align-items: flex-start; gap: 10px; }
+  .alert-info svg { flex-shrink: 0; margin-top: 2px; }
+  .alert-info-text { font-size: 13px; color: #1e40af; }
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Login Screen -->
+<div id="loginScreen" style="display:flex;">
+  <div class="login-box">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:64px;height:64px;background:linear-gradient(135deg,var(--navy),#0a3d6b);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
+        <svg width="30" height="30" fill="none" stroke="#D4AF37" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <h2 style="font-size:22px;font-weight:700;color:var(--navy);margin:0;">GoldenTech</h2>
+      <p style="font-size:13px;color:#6b7280;margin-top:4px;">เข้าสู่ระบบสมาชิก</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">เบอร์โทรศัพท์</label>
+      <input type="text" class="form-input" id="loginPhone" placeholder="0812345678" />
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label class="form-label">รหัสผ่าน</label>
+      <input type="password" class="form-input" id="loginPass" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <button class="btn-primary" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div style="text-align:center;margin-top:16px;">
+      <span style="font-size:13px;color:#6b7280;">ยังไม่มีบัญชี? </span>
+      <span style="font-size:13px;color:var(--navy);font-weight:600;cursor:pointer;" onclick="showRegister()">สมัครสมาชิก</span>
+    </div>
+  </div>
+</div>
+
+<!-- Register Screen -->
+<div id="registerScreen" style="display:none;min-height:100vh;background:linear-gradient(135deg,var(--navy) 0%,#0a3d6b 100%);align-items:center;justify-content:center;padding:20px;">
+  <div class="login-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+      <button onclick="showLogin()" style="background:none;border:none;cursor:pointer;padding:0;">
+        <svg width="20" height="20" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2 style="font-size:18px;font-weight:700;color:var(--navy);margin:0;">สมัครสมาชิก</h2>
+    </div>
+
+    <div class="alert-info">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <div class="alert-info-text">ต้องมีรหัสเชิญจากแอดมินเพื่อสมัครสมาชิก</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">รหัสเชิญ</label>
+      <input type="text" class="form-input" id="regInviteCode" placeholder="กรอกรหัสเชิญจากแอดมิน" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">เบอร์โทรศัพท์</label>
+      <input type="text" class="form-input" id="regPhone" placeholder="0812345678" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">รหัสผ่าน</label>
+      <input type="password" class="form-input" id="regPass" placeholder="รหัสผ่าน" />
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label class="form-label">รหัสถอน (PIN)</label>
+      <input type="password" class="form-input" id="regPin" placeholder="รหัสถอน 4-6 หลัก" maxlength="6" />
+    </div>
+    <button class="btn-gold" onclick="doRegister()">สมัครสมาชิก</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appScreen" style="display:none;">
+  <div class="app">
+
+    <!-- Home Page -->
+    <div class="page active" id="page-home">
+      <div class="header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;background:rgba(212,175,55,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" fill="none" stroke="#D4AF37" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <span class="header-title">GoldenTech</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:32px;height:32px;background:rgba(212,175,55,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="showPage('profile')">
+            <svg width="16" height="16" fill="none" stroke="#D4AF37" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carousel -->
+      <div class="carousel-wrap" id="carouselWrap">
+        <div class="carousel-slides" id="carouselSlides"></div>
+        <div class="carousel-dots" id="carouselDots"></div>
+      </div>
+
+      <!-- Balance Quick View -->
+      <div class="balance-card">
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:4px;">ยอดเงินของคุณ</div>
+        <div style="font-size:28px;font-weight:700;color:white;" id="homeBalance">฿0.00</div>
+        <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);">คะแนนเครดิต</div>
+          <div style="font-size:12px;color:var(--gold);font-weight:600;" id="homeCreditText">0/100</div>
+        </div>
+        <div class="credit-bar" style="margin-top:6px;">
+          <div class="credit-fill" id="homeCreditFill" style="width:0%;"></div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-title">เมนูด่วน</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 16px;margin-bottom:16px;">
+        <div class="quick-btn" onclick="showPage('wallet')">
+          <div class="quick-icon" style="background:#eff6ff;">
+            <svg width="22" height="22" fill="none" stroke="#1a56db" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <span class="quick-label">กระเป๋าเงิน</span>
+        </div>
+        <div class="quick-btn" onclick="showPage('bank')">
+          <div class="quick-icon" style="background:#f0fdf4;">
+            <svg width="22" height="22" fill="none" stroke="#059669" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <span class="quick-label">บัญชีธนาคาร</span>
+        </div>
+        <div class="quick-btn" onclick="showPage('profile')">
+          <div class="quick-icon" style="background:#fef3c7;">
+            <svg width="22" height="22" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <span class="quick-label">โปรไฟล์</span>
+        </div>
+        <div class="quick-btn" onclick="showPage('orders')">
+          <div class="quick-icon" style="background:#fdf4ff;">
+            <svg width="22" height="22" fill="none" stroke="#9333ea" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1" ry="1"/></svg>
+          </div>
+          <span class="quick-label">คำสั่งซื้อ</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wallet Page -->
+    <div class="page" id="page-wallet">
+      <div class="header">
+        <button onclick="showPage('home')" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;">
+          <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="header-title">กระเป๋าเงิน</span>
+        <div style="width:20px;"></div>
+      </div>
+      <div class="balance-card" style="margin:16px;">
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:4px;">ยอดเงินคงเหลือ</div>
+        <div style="font-size:32px;font-weight:700;color:white;" id="walletBalance">฿0.00</div>
+      </div>
+
+      <div id="withdrawLockAlert" style="display:none;" class="alert-locked">
+        <svg width="20" height="20" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#dc2626;">การถอนเงินถูกระงับ</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:2px;">กรุณาติดต่อผู้ดูแลระบบ</div>
+        </div>
+      </div>
+
+      <div id="withdrawForm" style="padding:0 16px;">
+        <div class="section-title" style="padding:0;margin:16px 0 12px;">ถอนเงิน</div>
+        
+        <div id="bankNotLinked" style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:none;">
+          <div style="font-size:13px;color:#92400e;">กรุณา<span style="cursor:pointer;font-weight:600;text-decoration:underline;" onclick="showPage('bank')">ผูกบัญชีธนาคาร</span>ก่อนถอนเงิน</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">จำนวนเงินที่ต้องการถอน (฿)</label>
+          <input type="number" class="form-input" id="withdrawAmount" placeholder="กรอกจำนวนเงิน" min="1" step="0.01" />
+        </div>
+        <div style="background:#f9fafb;border-radius:10px;padding:12px;margin-bottom:16px;" id="bankInfoBox">
+          <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">โอนเข้าบัญชี</div>
+          <div style="font-size:14px;font-weight:600;color:#374151;" id="walletBankName">-</div>
+          <div style="font-size:13px;color:#6b7280;font-family:monospace;" id="walletBankAcc">-</div>
+        </div>
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label">รหัสถอน (PIN)</label>
+          <input type="password" class="form-input" id="withdrawPin" placeholder="กรอกรหัสถอน" maxlength="6" />
+        </div>
+        <button class="btn-gold" onclick="doWithdraw()">ยืนยันถอนเงิน</button>
+      </div>
+    </div>
+
+    <!-- Bank Account Page -->
+    <div class="page" id="page-bank">
+      <div class="header">
+        <button onclick="showPage('home')" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;">
+          <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="header-title">บัญชีธนาคาร</span>
+        <div style="width:20px;"></div>
+      </div>
+      <div style="padding:16px;">
+        <div style="background:#f9fafb;border-radius:12px;padding:16px;margin-bottom:20px;" id="currentBankCard">
+          <div style="font-size:13px;color:#6b7280;margin-bottom:8px;">บัญชีที่ผูกอยู่</div>
+          <div style="font-size:16px;font-weight:700;color:var(--navy);" id="currentBankName">ยังไม่ได้ผูกบัญชี</div>
+          <div style="font-size:14px;color:#6b7280;font-family:monospace;margin-top:4px;" id="currentBankAcc">-</div>
+        </div>
+        <div class="section-title" style="padding:0;margin:0 0 12px;">ผูกบัญชีธนาคาร</div>
+        <div class="form-group">
+          <label class="form-label">ชื่อธนาคาร</label>
+          <select class="form-input" id="bankName">
+            <option value="">-- เลือกธนาคาร --</option>
+            <option>กสิกรไทย (KBANK)</option>
+            <option>ไทยพาณิชย์ (SCB)</option>
+            <option>กรุงเทพ (BBL)</option>
+            <option>กรุงไทย (KTB)</option>
+            <option>กรุงศรีอยุธยา (BAY)</option>
+            <option>ทหารไทยธนชาต (TTB)</option>
+            <option>ออมสิน (GSB)</option>
+            <option>ธ.ก.ส. (BAAC)</option>
+            <option>อื่นๆ</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label">เลขบัญชีธนาคาร</label>
+          <input type="text" class="form-input" id="bankAccount" placeholder="เลขบัญชี 10-12 หลัก" />
+        </div>
+        <button class="btn-primary" onclick="saveBankAccount()">บันทึกบัญชีธนาคาร</button>
+      </div>
+    </div>
+
+    <!-- Profile Page -->
+    <div class="page" id="page-profile">
+      <div class="header">
+        <span class="header-title">โปรไฟล์ของฉัน</span>
+        <button onclick="doLogout()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;color:rgba(255,255,255,0.7);font-size:12px;font-family:Kanit,sans-serif;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          ออก
+        </button>
+      </div>
+      <div style="padding:20px 16px;">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+          <div class="profile-avatar" id="profileAvatar">A</div>
+          <div>
+            <div style="font-size:18px;font-weight:700;color:var(--navy);" id="profilePhone">-</div>
+            <div style="font-size:13px;color:#6b7280;">สมาชิก</div>
+          </div>
+        </div>
+
+        <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;margin-bottom:16px;">
+          <div class="info-row">
+            <span class="info-label">ยอดเงิน</span>
+            <span class="info-value" style="color:#059669;font-size:16px;" id="profileBalance">฿0.00</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">คะแนนเครดิต</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:80px;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;">
+                <div style="height:100%;background:var(--gold);border-radius:3px;transition:width 0.5s;" id="profileCreditBar"></div>
+              </div>
+              <span class="info-value" style="color:#d97706;" id="profileCredit">0</span>
+            </div>
+          </div>
+          <div class="info-row" style="border-bottom:none;">
+            <span class="info-label">ธนาคาร</span>
+            <span class="info-value" id="profileBank">-</span>
+          </div>
+        </div>
+
+        <div id="profileLockAlert" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;align-items:center;gap:10px;">
+          <svg width="18" height="18" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span style="font-size:13px;color:#dc2626;font-weight:500;">การถอนเงินถูกระงับชั่วคราว</span>
+        </div>
+
+        <button class="btn-primary" onclick="showPage('bank')" style="margin-bottom:10px;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;margin-right:6px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          จัดการบัญชีธนาคาร
+        </button>
+      </div>
+    </div>
+
+    <!-- Orders Page -->
+    <div class="page" id="page-orders">
+      <div class="header">
+        <button onclick="showPage('home')" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;">
+          <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="header-title">คำสั่งซื้อของฉัน</span>
+        <div style="width:20px;"></div>
+      </div>
+      <div style="padding:40px 16px;text-align:center;">
+        <svg width="60" height="60" fill="none" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 16px;"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1" ry="1"/></svg>
+        <div style="font-size:15px;color:#9ca3af;">ยังไม่มีคำสั่งซื้อ</div>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+      <div class="nav-item active" id="nav-home" onclick="showPage('home')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        หน้าแรก
+      </div>
+      <div class="nav-item" id="nav-wallet" onclick="showPage('wallet')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        กระเป๋าเงิน
+      </div>
+      <div class="nav-item" id="nav-orders" onclick="showPage('orders')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1" ry="1"/></svg>
+        คำสั่งซื้อ
+      </div>
+      <div class="nav-item" id="nav-profile" onclick="showPage('profile')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        โปรไฟล์
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://irxelujlomdjwnavfjef.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_WJ5NLTurwYpI3L1adyrWAA_3L32v26R';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let carouselTimer = null;
+let carouselIndex = 0;
+let carouselList = [];
+
+// ─── Auth ───
+function showLogin() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('registerScreen').style.display = 'none';
+}
+function showRegister() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('registerScreen').style.display = 'flex';
+}
+
+async function doLogin() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  if (!phone || !pass) { showToast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+
+  const { data, error } = await sb.from('profiles')
+    .select('*')
+    .eq('phone_number', phone)
+    .single();
+
+  if (error || !data) { showToast('ไม่พบบัญชีนี้ในระบบ', 'error'); return; }
+  if (data.password && data.password !== pass) {
+    showToast('รหัสผ่านไม่ถูกต้อง', 'error'); return;
+  }
+
+  currentUser = data;
+  enterApp();
+}
+
+async function doRegister() {
+  const inviteCode = document.getElementById('regInviteCode').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const pass = document.getElementById('regPass').value.trim();
+  const pin = document.getElementById('regPin').value.trim();
+
+  if (!inviteCode || !phone || !pass || !pin) { showToast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+  if (pin.length < 4 || pin.length > 6) { showToast('รหัสถอนต้อง 4-6 หลัก', 'error'); return; }
+
+  // Verify invite code
+  const { data: inviteData, error: inviteError } = await sb.from('invite_codes')
+    .select('id, is_used')
+    .eq('code', inviteCode)
+    .single();
+
+  if (inviteError || !inviteData) { 
+    showToast('รหัสเชิญไม่ถูกต้อง', 'error'); 
+    return; 
+  }
+
+  if (inviteData.is_used) { 
+    showToast('รหัสเชิญนี้ถูกใช้งานแล้ว', 'error'); 
+    return; 
+  }
+
+  // Check duplicate phone
+  const { data: existing } = await sb.from('profiles').select('id').eq('phone_number', phone).single();
+  if (existing) { showToast('เบอร์โทรนี้มีในระบบแล้ว', 'error'); return; }
+
+  // Create profile
+  const { data: newProfile, error: regError } = await sb.from('profiles').insert({
+    phone_number: phone,
+    password: pass,
+    withdrawal_pin: pin,
+    balance: 0,
+    credit_score: 50,
+    is_withdrawal_locked: false
+  }).select().single();
+
+  if (regError) { showToast('สมัครล้มเหลว: ' + regError.message, 'error'); return; }
+
+  // Mark invite code as used
+  await sb.from('invite_codes').update({ is_used: true }).eq('id', inviteData.id);
+
+  currentUser = newProfile;
+  showToast('สมัครสมาชิกสำเร็จ!');
+  enterApp();
+}
+
+function enterApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('registerScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  updateUI();
+  loadCarousel();
+  showPage('home');
+}
+
+function doLogout() {
+  currentUser = null;
+  if (carouselTimer) clearInterval(carouselTimer);
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+// ─── UI Update ───
+function updateUI() {
+  if (!currentUser) return;
+  const u = currentUser;
+  const bal = Number(u.balance || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
+  const credit = u.credit_score ?? 0;
+  const phone = u.phone_number || '-';
+
+  // Home
+  document.getElementById('homeBalance').textContent = '฿' + bal;
+  document.getElementById('homeCreditText').textContent = credit + '/100';
+  document.getElementById('homeCreditFill').style.width = credit + '%';
+
+  // Wallet
+  document.getElementById('walletBalance').textContent = '฿' + bal;
+  document.getElementById('walletBankName').textContent = u.bank_name || 'ยังไม่ได้ผูกบัญชี';
+  document.getElementById('walletBankAcc').textContent = u.bank_account_number || '-';
+  
+  const hasBankLinked = u.bank_name && u.bank_account_number;
+  document.getElementById('bankNotLinked').style.display = hasBankLinked ? 'none' : 'block';
+  document.getElementById('bankInfoBox').style.display = hasBankLinked ? 'block' : 'none';
+  
+  if (u.is_withdrawal_locked) {
+    document.getElementById('withdrawLockAlert').style.display = 'flex';
+    document.getElementById('withdrawForm').style.opacity = '0.4';
+    document.getElementById('withdrawForm').style.pointerEvents = 'none';
+  } else {
+    document.getElementById('withdrawLockAlert').style.display = 'none';
+    document.getElementById('withdrawForm').style.opacity = '1';
+    document.getElementById('withdrawForm').style.pointerEvents = 'auto';
+  }
+
+  // Profile
+  document.getElementById('profilePhone').textContent = phone;
+  document.getElementById('profileAvatar').textContent = phone.charAt(0) || 'U';
+  document.getElementById('profileBalance').textContent = '฿' + bal;
+  document.getElementById('profileCredit').textContent = credit;
+  document.getElementById('profileCreditBar').style.width = credit + '%';
+  document.getElementById('profileBank').textContent = u.bank_name || 'ยังไม่ได้ผูกบัญชี';
+  if (u.is_withdrawal_locked) {
+    document.getElementById('profileLockAlert').style.display = 'flex';
+  } else {
+    document.getElementById('profileLockAlert').style.display = 'none';
+  }
+
+  // Bank
+  document.getElementById('currentBankName').textContent = u.bank_name || 'ยังไม่ได้ผูกบัญชี';
+  document.getElementById('currentBankAcc').textContent = u.bank_account_number || '-';
+  if (u.bank_name) document.getElementById('bankName').value = u.bank_name;
+  if (u.bank_account_number) document.getElementById('bankAccount').value = u.bank_account_number;
+}
+
+// ─── Carousel ───
+async function loadCarousel() {
+  const { data } = await sb.from('carousels').select('id,image_url,title,sort_order').order('sort_order', { ascending: true });
+  carouselList = data || [];
+  renderCarousel();
+}
+
+function renderCarousel() {
+  const slides = document.getElementById('carouselSlides');
+  const dots = document.getElementById('carouselDots');
+  if (carouselList.length === 0) {
+    slides.innerHTML = '<div style="min-width:100%;height:100%;background:linear-gradient(135deg,#001F3F,#0a3d6b);display:flex;align-items:center;justify-content:center;"><span style="color:rgba(255,255,255,0.5);font-size:14px;">GoldenTech</span></div>';
+    dots.innerHTML = '';
+    return;
+  }
+  slides.innerHTML = carouselList.map(c =>
+    `<img src="${c.image_url}" alt="${c.title||''}" class="carousel-slide" onerror="this.style.background='#e5e7eb';this.style.objectFit='none';" />`
+  ).join('');
+  dots.innerHTML = carouselList.map((_, i) =>
+    `<div class="dot ${i===0?'active':''}" onclick="goSlide(${i})"></div>`
+  ).join('');
+
+  carouselIndex = 0;
+  if (carouselTimer) clearInterval(carouselTimer);
+  if (carouselList.length > 1) {
+    carouselTimer = setInterval(() => goSlide((carouselIndex + 1) % carouselList.length), 4000);
+  }
+}
+
+function goSlide(i) {
+  carouselIndex = i;
+  document.getElementById('carouselSlides').style.transform = `translateX(-${i * 100}%)`;
+  document.querySelectorAll('.dot').forEach((d, idx) => d.classList.toggle('active', idx === i));
+}
+
+// ─── Navigation ───
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.add('active');
+  const nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+
+  if (name === 'profile' || name === 'wallet') refreshProfile();
+}
+
+async function refreshProfile() {
+  if (!currentUser) return;
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  if (data) { currentUser = data; updateUI(); }
+}
+
+// ─── Bank Account ───
+async function saveBankAccount() {
+  const bank = document.getElementById('bankName').value;
+  const acc = document.getElementById('bankAccount').value.trim();
+  if (!bank || !acc) { showToast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+
+  const { error } = await sb.from('profiles').update({
+    bank_name: bank,
+    bank_account_number: acc
+  }).eq('id', currentUser.id);
+
+  if (error) { showToast('บันทึกล้มเหลว: ' + error.message, 'error'); return; }
+
+  currentUser.bank_name = bank;
+  currentUser.bank_account_number = acc;
+  showToast('บันทึกบัญชีธนาคารสำเร็จ');
+  updateUI();
+}
+
+// ─── Withdraw ───
+async function doWithdraw() {
+  if (currentUser.is_withdrawal_locked) { showToast('การถอนเงินถูกระงับ', 'error'); return; }
+  
+  const amount = parseFloat(document.getElementById('withdrawAmount').value);
+  const pin = document.getElementById('withdrawPin').value.trim();
+  
+  if (isNaN(amount) || amount <= 0) { showToast('กรุณากรอกจำนวนเงินที่ถูกต้อง', 'error'); return; }
+  if (amount > (currentUser.balance || 0)) { showToast('ยอดเงินไม่เพียงพอ', 'error'); return; }
+  if (!pin) { showToast('กรุณากรอกรหัสถอน', 'error'); return; }
+  if (pin !== currentUser.withdrawal_pin) { showToast('รหัสถอนไม่ถูกต้อง', 'error'); return; }
+  if (!currentUser.bank_account_number) { showToast('กรุณาผูกบัญชีธนาคารก่อน', 'error'); return; }
+
+  const newBalance = (currentUser.balance || 0) - amount;
+  const { error } = await sb.from('profiles').update({ balance: newBalance }).eq('id', currentUser.id);
+  if (error) { showToast('ถอนเงินล้มเหลว: ' + error.message, 'error'); return; }
+
+  currentUser.balance = newBalance;
+  document.getElementById('withdrawAmount').value = '';
+  document.getElementById('withdrawPin').value = '';
+  showToast(`ถอนเงิน ฿${amount.toLocaleString('th-TH', {minimumFractionDigits:2})} สำเร็จ`);
+  updateUI();
+}
+
+// ─── Toast ───
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#dc2626' : '#059669';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
